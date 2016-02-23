@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
@@ -210,22 +210,26 @@
 			
 			tunnelEffect();
 			
-			// loop through the data and draw!
+		    // loop through the data and draw!
+			for (var i = 0; i < data.length; i++) {
+			    pulseCircle(data[i]);
+			}
 			for(var i=0; i<data.length; i++) { 
-				ctx.fillStyle = 'rgba(0,255,0,0.3)'; 
+			    ctx.strokeStyle = 'rgba(0,255,0,0.3)';
 				
 				ctx.beginPath();
-				ctx.arc(i * (barWidth + barSpacing), topSpacing + 256-data[i], barWidth, 0, Math.PI * 2);
-				ctx.fill();
-				ctx.closePath();
-				//ctx.fillRect(i * (barWidth + barSpacing),topSpacing + 256-data[i],barWidth,barHeight);
-				
-				//draw inverted bars
-				//ctx.fillRect(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, barHeight);
-				ctx.arc(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, 0, Math.PI * 2);
-				ctx.fill();
-				ctx.closePath();
-				pulseCircle(data[i]);				
+				if(i * barWidth + barSpacing <= pulseCircleX){
+				    ctx.moveTo(0, pulseCircleY);
+				    ctx.quadraticCurveTo(i * (barWidth + barSpacing), topSpacing + 256 - data[i], pulseCircleX, pulseCircleY);
+				}
+				else{
+				    ctx.moveTo(pulseCircleX, pulseCircleY);
+				    if (i * barWidth < 640) {
+				        ctx.quadraticCurveTo(i * (barWidth), topSpacing + 256 - data[i], 640, pulseCircleY);
+				    }
+				}
+				ctx.stroke();
+				ctx.closePath();		
 			}
 			
 			
