@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Web Audio Visualizer</title>
+	<style>
+	body {
+         background: #eeeeee;
+         font-family: tahoma, verdana, sans serif;
+      }
+
+      canvas {
+        margin-left:10px;
+        margin-top:10px;
+        box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+        background: black;
+    }
+      
+      #controls{
+      	margin-left:10px;
+        margin-top:10px;
+      }
+	</style>
+	<script>
+	// An IIFE ("Iffy") - see the notes in mycourses
+	(function(){
+		"use strict";
+		
+		var NUM_SAMPLES = 256;
+		var SOUND_1 = 'media/New Adventure Theme.mp3';
+		var SOUND_2 = 'media/Peanuts Theme.mp3';
+		var SOUND_3 = 'media/The Picard Song.mp3';
+		var audioElement;
+		var analyserNode;
+		var canvas,ctx;
+		var invert = false;
+		var tintRed = false;
+		var noise = false;
+		var lines = false;
+		var maxRadius = 100;
+		
+		var circArrayPos = 0;
+		var centerX = 250;
+		var centerY = 150;
+		var centerYTick = 0.008;
+		var centerXTick = 0.01;
+		var makeCircle = 0;
+		var pulseCircleX = 250;
+		var pulseCircleY = 150;
+		
+		var circArray = new Array();
+		for(var i = 0; i < 1000; i++)
+		{
+			var circle = {radius: 800, positionX: 0, positionY: 150};
+			circArray[i] = circle;
+		}
+		
+		var circSlider;
+		
+		function init(){
+			// set up canvas stuff
+			canvas = document.querySelector('canvas');
+			ctx = canvas.getContext("2d");
+			
+			// get reference to <audio> element on page
+			audioElement = document.querySelector('audio');
+			
+			// call our helper function and get an analyser node
+			analyserNode = createWebAudioContextWithAnalyserNode(audioElement);
+			
+			//circSlider = document.querySelector('circleSlider');
+			
+			// get sound track <select> and Full Screen button working
+			setupUI();
+			
+			
+			
+			// load and play default sound into audio element
+			playStream(audioElement,SOUND_1);
+			
+			// start animation loop
+			update();
+		}
+		
+		
+		function createWebAudioContextWithAnalyserNode(audioElement) {
+			var audioCtx, analyserNode, sourceNode;
+			// create new AudioContext
+			// The || is because WebAudio has not been standardized across browsers yet
+			// http://webaudio.github.io/web-audio-api/#the-audiocontext-interface
+			audioCtx = new (window.AudioContext || window.webkitAudioContext);
+			
+			// create an analyser node
+			analyserNode = audioCtx.createAnalyser();
+			
+			/*
+			We will request NUM_SAMPLES number of samples or "bins" spaced equally 
+			across the sound spectrum.
+			
+			If NUM_SAMPLES (fftSize) is 256, then the first bin is 0 Hz, the second is 172 Hz, 
+			the third is 344Hz. Each bin contains a number between 0-255 representing 
+			the amplitude of that frequency.
+			*/ 
+			
+			// fft stands for Fast Fourier Transform
+			analyserNode.fftSize = NUM_SAMPLES;
+			
+			// this is where we hook up the <audio> element to the analyserNode
+			sourceNode = audioCtx.createMediaElementSource(audioElement); 
+			sourceNode.connect(analyserNode);
+			
+			// here we connect to the destination i.e. speakers
+			analyserNode.connect(audioCtx.destination);
+			return analyserNode;
+		}
+		
+		function setupUI(){
+			document.querySelector("#trackSelect").onchange = function(e){
+				playStream(audioElement,e.target.value);
+			};
+			
+			document.querySelector("#fsButton").onclick = function(){
+				requestFullscreen(canvas);
+			};
+			
+			document.querySelector("#tintRedBox").onchange = function(e){
+				
+				if (e.target.checked) {
+					tintRed = true;
+				}
+				else{
+					tintRed = false;
+				}
+			}
+			
+			document.querySelector("#invertBox").onchange = function(e){
+				
+				if (e.target.checked) {
+					invert = true;
+				}
+				else{
+					invert = false;
+				}
+			}
+			
+			document.querySelector("#noiseBox").onchange = function(e){
+				
+				if (e.target.checked) {
+					noise = true;
+				}
+				else{
+					noise= false;
+				}
+			}
+			
+			document.querySelector("#linesBox").onchange = function(e){
+				
+				if (e.target.checked) {
+					lines = true;
+				}
+				else{
+					lines = false;
+				}
+			}
+		}
+		
+		function playStream(audioElement,path){
+			audioElement.src = path;
+			audioElement.play();
+			audioElement.volume = 0.2;
+			document.querySelector('#status').innerHTML = "Now playing: " + path;
+		}
+		
+		function changeCircleRadius(){
+			document.querySelector("#circleSlider").onchange =  function (e){
+			console.log("In slider change");
+			maxRadius = e.target.value;
+			}
+		}
+		
+		function update() { 
+			// this schedules a call to the update() method in 1/60 seconds
+			requestAnimationFrame(update);
+			
+			changeCircleRadius();
+			
+			// create a new array of 8-bit integers (0-255)
+			var data = new Uint8Array(NUM_SAMPLES/2); 
+			
+			// populate the array with the frequency data
+			// notice these arrays can be passed "by reference" 
+			analyserNode.getByteFrequencyData(data);
+		
+			// OR
+			//analyserNode.getByteTimeDomainData(data); // waveform data
+			
+			// DRAW!
+						
+			ctx.fillStyle = "black";
+			ctx.fillRect(0,0,800,600);
+			
+			
+			var barWidth = 8;
+			var barSpacing = 1;
+			var barHeight = 100;
+			var topSpacing = 50;
+			
+			pulseCircleX = centerX - (centerX - pulseCircleX) * 0.99;
+			pulseCircleY = centerY - (centerY - pulseCircleY) * 0.99;
+			
+			tunnelEffect();
+			
+			// loop through the data and draw!
+			for(var i=0; i<data.length; i++) { 
+				ctx.fillStyle = 'rgba(0,255,0,0.3)'; 
+				
+				ctx.beginPath();
+				ctx.arc(i * (barWidth + barSpacing), topSpacing + 256-data[i], barWidth, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.closePath();
+				//ctx.fillRect(i * (barWidth + barSpacing),topSpacing + 256-data[i],barWidth,barHeight);
+				
+				//draw inverted bars
+				//ctx.fillRect(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, barHeight);
+				ctx.arc(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.closePath();
+				pulseCircle(data[i]);				
+			}
+			
+			
+			 
+			manipulatePixels();
+		} 
+		
+		
+		function manipulatePixels()
+		{
+			//get all of the rgba pixel data of the canvas by grabbing the ImageData Object
+			var imageData = ctx.getImageData(0,0, canvas.width, canvas.height);
+			
+			//imageData.data is an 8-bit typed array - values range from 0-255
+			//imageData.data contains 4 values per pixel: 4 x canvas.width x canvas.height = 1024000 values
+			var data = imageData.data;
+			var length = data.length;
+			var width = imageData.width;
+			
+			//iterate through each pixel
+			//step by 4 so you can manipulate 1 pixel per iteration
+			//data[i] is red value
+			//data[i + 1] is the green value
+			//data[i + 2] is the blue value
+			//data[i + 3] is the alpha value
+			
+			for(var i = 0; i < length; i += 4)
+			{
+				if (tintRed) {
+					//just the red channel
+					data[i] = data[i] + 100;
+				}
+				
+				if (invert) {
+					var red = data[i], green = data[i+1], blue = data[i+2];
+					data[i] = 255 -red;
+					data[i + 1] = 255 - green
+					data[i + 2] = 255 - blue;
+				}
+				
+				if (noise && Math.random() < .10) {
+					//data[i] = data[i + 1] = data[i + 2] = 128; //gray noise
+					data[i] = data[i + 1] = data[i + 2] = 255; //white
+					//data[i] = data[i + 1] = data[i + 2] = 0; //black
+				}
+				
+				if (lines) {
+					var row = Math.floor(i/4/width);
+					if (row % 50 == 0 ) {
+						data[i] = data[i + 1] = data[i + 2] = data[i + 3] = 255;
+						
+						data[i + (width * 4)] = data[i + (width * 4) + 1] = data[i + (width * 4) + 2] =  data[i + (width * 4) + 3] = 255;
+					}
+				}
+			}
+			
+			//put the modified data back on the canvas
+			ctx.putImageData(imageData, 0, 0);
+		}
+		
+		// HELPER
+		function makeColor(red, green, blue, alpha){
+   			var color='rgba('+red+','+green+','+blue+', '+alpha+')';
+   			return color;
+		}
+		
+		 // FULL SCREEN MODE
+		function requestFullscreen(element) {
+			if (element.requestFullscreen) {
+			  element.requestFullscreen();
+			} else if (element.mozRequestFullscreen) {
+			  element.mozRequestFullscreen();
+			} else if (element.mozRequestFullScreen) { // camel-cased 'S' was changed to 's' in spec
+			  element.mozRequestFullScreen();
+			} else if (element.webkitRequestFullscreen) {
+			  element.webkitRequestFullscreen();
+			}
+			// .. and do nothing if the method is not supported
+		}
+		function tunnelEffect(){
+			ctx.save();
+            centerX += centerXTick * 120;
+			centerY += centerYTick * 120;
+			if ((makeCircle % 3) == 0) {
+                circArray[circArrayPos].radius = 10;
+				circArray[circArrayPos].positionX = centerX;
+				circArray[circArrayPos].positionY = centerY;
+				circArrayPos +=1;
+				
+            }
+			makeCircle++;
+			
+			if (circArrayPos >= 1000) {
+                circArrayPos = 0;
+            }
+			for(var i = 0; i < circArray.length; i++)
+			{
+				
+				
+				
+				if (circArray[i].radius > 800) {
+					
+                }
+				
+				else{					
+                        circArray[i].radius += circArray[i].radius * 0.01 + 1;
+
+					
+				}
+			}
+			
+			for(var i = 0; i < circArray.length; i++)
+			{
+				ctx.beginPath();
+				ctx.arc(circArray[i].positionX, circArray[i].positionY, circArray[i].radius, 0, Math.PI * 2, false );
+				ctx.closePath();
+				
+				ctx.strokeStyle="white";
+				ctx.stroke();
+			}
+			
+			if (centerX > 500) {
+                centerXTick *= -1;
+            }
+			
+			if(centerX < 0){
+                centerXTick *= -1;
+            }
+			
+			if (centerY > 300) {
+                centerYTick *= -1;
+            }
+			
+			if(centerY < 0){
+                centerYTick *= -1;
+            }
+			ctx.restore();
+		}
+		
+		
+		
+		
+		
+		
+		function pulseCircle(data) {
+			
+            //red-ish circles
+				var percent = Math.max(data-100,0) / 155;
+				
+				 
+				
+				//percent *= 10;
+				//var maxRadius = 200;
+				var circleRadius = percent * maxRadius;
+				ctx.beginPath();
+				//.34 - percent/3.0
+				ctx.fillStyle = makeColor(255, 111, 111, .5 - percent/3.0);
+				ctx.arc(pulseCircleX, pulseCircleY, circleRadius, 0, 2 * Math.PI, false);
+				ctx.fill();
+				ctx.closePath();
+				
+				//blue-ish circles, bigger, more transparent
+				ctx.beginPath();
+				ctx.fillStyle=makeColor(0,0,255, .1 - percent/10.0);
+				ctx.arc(pulseCircleX, pulseCircleY, circleRadius * 1.5, 0, 2 * Math.PI, false);
+				ctx.fill();
+				ctx.closePath();
+				
+				//yellow-ish circles, smaller
+				ctx.save();
+				ctx.beginPath();
+				ctx.fillStyle = makeColor(200, 200, 0, .75 - percent/5.0);
+				ctx.arc(pulseCircleX, pulseCircleY, circleRadius * .50, 0, 2 * Math.PI, false);
+				ctx.fill();
+				ctx.closePath();
+				ctx.restore();
+			
+        }
+		window.addEventListener("load",init);
+	}());
+		
+	</script>
+</head>
+<body>
+	<canvas id="canvas" width="640" height="400"></canvas>
+	<div id="controls">
+		<audio controls loop></audio>
+		<label>Track: 
+			<select id="trackSelect" >
+				<option value="media/New Adventure Theme.mp3">New Adventure Theme</option>
+				<option value="media/Peanuts Theme.mp3">Peanuts Theme</option>
+				<option value="media/The Picard Song.mp3">The Picard Song</option>
+			</select>
+		</label>
+		<label for="circleSlider">CircleRadius</label>
+		<input id="circleSlider" type ="range" min = "50" max = "200" step = "10" value = "100"/>
+		
+		<label for="tintRedBox">Tint Red</label>
+		<input id="tintRedBox" type="checkbox"/>
+		<label for="invertBox">Invert Color</label>
+		<input id="invertBox" type="checkbox"/>
+		<label for="noiseBox">Noise</label>
+		<input id="noiseBox" type="checkbox"/>
+		<label for="linesBox">Lines</label>
+		<input id="linesBox" type="checkbox"/>
+		
+		<button id="fsButton">Go Full Screen</button><br>
+		<p id="status">???</p>
+	</div>
+</body>
+</html>
