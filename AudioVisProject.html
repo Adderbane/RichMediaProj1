@@ -47,6 +47,8 @@
 		var makeCircle = 0;
 		var pulseCircleX = 250;
 		var pulseCircleY = 150;
+		var tunnelRandCounter = 0;
+		var tunnelRandY, tunnelRandX;
 		
 		var circArray = new Array();
 		for(var i = 0; i < 1000; i++)
@@ -309,10 +311,18 @@
 			}
 			// .. and do nothing if the method is not supported
 		}
+		
 		function tunnelEffect(){
 			ctx.save();
-            centerX += centerXTick * 120;
-			centerY += centerYTick * 120;
+			if (tunnelRandCounter % 90 == 0) {
+			tunnelRandY = (Math.random() - 0.5) * 5;
+			tunnelRandX = (Math.random() -  0.5) * 5;
+				console.log(tunnelRandY);
+				console.log(tunnelRandX);
+			}
+			tunnelRandCounter++;
+            centerX += centerXTick * 120 * tunnelRandX;
+			centerY += centerYTick * 120 * tunnelRandY;
 			if ((makeCircle % 3) == 0) {
                 circArray[circArrayPos].radius = 10;
 				circArray[circArrayPos].positionX = centerX;
