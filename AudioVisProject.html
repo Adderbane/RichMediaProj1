@@ -80,6 +80,8 @@
 			// load and play default sound into audio element
 			playStream(audioElement,SOUND_1);
 			
+			
+			
 			// start animation loop
 			update();
 		}
@@ -217,17 +219,17 @@
 			    pulseCircle(data[i]);
 			}
 			for(var i=0; i<data.length; i++) { 
-			    ctx.strokeStyle = 'rgba(0,255,0,0.3)';
+			    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
 				
 				ctx.beginPath();
 				if(i * barWidth + barSpacing <= pulseCircleX){
 				    ctx.moveTo(0, pulseCircleY);
-				    ctx.quadraticCurveTo(i * (barWidth + barSpacing), topSpacing + 256 - data[i], pulseCircleX, pulseCircleY);
+				    ctx.quadraticCurveTo(i * (barWidth + barSpacing), 400 - 2.0 * data[i], pulseCircleX, pulseCircleY);
 				}
 				else{
 				    ctx.moveTo(pulseCircleX, pulseCircleY);
 				    if (i * barWidth < 640) {
-				        ctx.quadraticCurveTo(i * (barWidth), topSpacing + 256 - data[i], 640, pulseCircleY);
+				        ctx.quadraticCurveTo(i * (barWidth), 400 - 2.0 * data[i], 640, pulseCircleY);
 				    }
 				}
 				ctx.stroke();
@@ -351,13 +353,17 @@
 				}
 			}
 			
+			
+			
 			for(var i = 0; i < circArray.length; i++)
 			{
 				ctx.beginPath();
 				ctx.arc(circArray[i].positionX, circArray[i].positionY, circArray[i].radius, 0, Math.PI * 2, false );
 				ctx.closePath();
 				
-				ctx.strokeStyle="white";
+				createGradient(circArray[i].positionX, circArray[i].positionY, circArray[i].radius);
+				
+				//ctx.strokeStyle="white";
 				ctx.stroke();
 			}
 			
@@ -418,10 +424,23 @@
 				ctx.restore();
 			
         }
+		
+		function createGradient(x, y, radius) {
+            var grad = ctx.createRadialGradient(x,y,0,x,y, 500);
+			grad.addColorStop(0, 'red');
+			grad.addColorStop(1/6, 'orange');
+			grad.addColorStop(2/6, 'yellow');
+			grad.addColorStop(3/6, 'green');
+			grad.addColorStop(4/6, 'aqua');
+			grad.addColorStop(5/6, 'blue');
+			grad.addColorStop(1, 'purple');
+			ctx.strokeStyle = grad;
+			
+        }
 		window.addEventListener("load",init);
 	}());
 		
-	</script>
+</script>
 </head>
 <body>
 	<canvas id="canvas" width="640" height="400"></canvas>
