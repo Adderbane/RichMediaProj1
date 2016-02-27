@@ -32,6 +32,7 @@
 		var SOUND_3 = 'media/The Picard Song.mp3';
 		var audioElement;
 		var analyserNode;
+		var bassNode;
 		var canvas,ctx;
 		var invert = false;
 		var tintRed = false;
@@ -114,11 +115,17 @@
 			
 			// fft stands for Fast Fourier Transform
 			analyserNode.fftSize = NUM_SAMPLES;
+
+			bassNode = audioCtx.createBiquadFilter();
+			bassNode.type = "lowshelf";
+			bassNode.frequency.value = 250;
+			bassNode.gain.value = 25;
 			
 			// this is where we hook up the <audio> element to the analyserNode
 			sourceNode = audioCtx.createMediaElementSource(audioElement); 
-			sourceNode.connect(analyserNode);
-			
+			sourceNode.connect(bassNode);
+			bassNode.connect(analyserNode);
+            			
 			// here we connect to the destination i.e. speakers
 			analyserNode.connect(audioCtx.destination);
 			return analyserNode;
@@ -172,6 +179,14 @@
 					lines = false;
 				}
 			}
+
+			document.querySelector("#circleSlider").onchange = function (e) {
+			    maxRadius = e.target.value;
+			}
+
+			document.querySelector("#bassBoost").onchange = function (e) {
+			    bassNode.gain.value = e.target.value;
+			}
 		}
 		
 		function playStream(audioElement,path){
@@ -181,18 +196,9 @@
 			document.querySelector('#status').innerHTML = "Now playing: " + path;
 		}
 		
-		function changeCircleRadius(){
-			document.querySelector("#circleSlider").onchange =  function (e){
-			console.log("In slider change");
-			maxRadius = e.target.value;
-			}
-		}
-		
 		function update() { 
 			// this schedules a call to the update() method in 1/60 seconds
 			requestAnimationFrame(update);
-			
-			changeCircleRadius();
 			
 			// create a new array of 8-bit integers (0-255)
 			var data = new Uint8Array(NUM_SAMPLES/2); 
@@ -219,9 +225,9 @@
 			pulseCircleY = centerY - (centerY - pulseCircleY) * 0.99;
 			
 			tunnelEffect();
-			for(var i = data.length - 150; i < data.length; i++)
+			for(var i = Math.floor(3*data.length/5.0); i < data.length; i++)
 			{
-				if (data[i] > 220) {
+			    if (data[i] > 105) {
                     genFlyingStuff(centerX, centerY);
                 }
 				
@@ -402,11 +408,6 @@
 			ctx.restore();
 		}
 		
-		
-		
-		
-		
-		
 		function pulseCircle(data) {
 			
             //red-ish circles
@@ -532,7 +533,9 @@
 				<option value="media/The Picard Song.mp3">The Picard Song</option>
 			</select>
 		</label>
-		<label for="circleSlider">CircleRadius</label>
+        <label for="bassBoost">Bass Booster</label>
+        <input id="bassBoost" type="range" min="0" max="60" step="1" value="25" />
+		<label for="circleSlider">Circle Radius</label>
 		<input id="circleSlider" type ="range" min = "50" max = "200" step = "10" value = "100"/>
 		
 		<label for="tintRedBox">Tint Red</label>
