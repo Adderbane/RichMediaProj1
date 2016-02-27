@@ -57,6 +57,12 @@
 			circArray[i] = circle;
 		}
 		
+		var stuffArray = new Array();
+		
+		var genTriangles = true;
+		var genCircles = false;
+		var genStuffTick = 0;
+		
 		var circSlider;
 		
 		function init(){
@@ -213,6 +219,15 @@
 			pulseCircleY = centerY - (centerY - pulseCircleY) * 0.99;
 			
 			tunnelEffect();
+			for(var i = data.length - 150; i < data.length; i++)
+			{
+				if (data[i] > 220) {
+                    genFlyingStuff(centerX, centerY);
+                }
+				
+			}
+			
+			drawFlyingStuff();
 			
 		    // loop through the data and draw!
 			for (var i = 0; i < data.length; i++) {
@@ -238,6 +253,8 @@
 			
 			
 			 
+			
+			
 			manipulatePixels();
 		} 
 		
@@ -436,6 +453,68 @@
 			grad.addColorStop(1, 'purple');
 			ctx.strokeStyle = grad;
 			
+        }
+		
+		function genFlyingStuff(xPos, yPos) {
+            genStuffTick++;
+			if (genStuffTick % 20 != 0) {
+                
+				return;
+				
+            }
+			if (genCircles) {
+                //code
+            }
+			
+			if (genTriangles) {
+				var xRand = Math.random() - 0.5;
+				var yRand = Math.random() - 0.5;
+				var xRandScalar = Math.random() * 5;
+				var yRandScalar = Math.random() * 5;
+				
+				var newXPos = xPos + xRand * xRandScalar;
+				var newYPos = yPos + yRand * yRandScalar;
+				
+				var triangle = {x: newXPos, y: newYPos, scale: 1.0, alpha: 1.0, active: true};
+				stuffArray[stuffArray.length] = triangle;
+            }
+        }
+		
+		function drawFlyingStuff() {
+			ctx.save();
+            for(var i = 0; i < stuffArray.length; i++)
+			{
+				if (stuffArray[i].active) {
+					ctx.save();
+                    ctx.beginPath();
+				
+					ctx.moveTo(stuffArray[i].x, stuffArray[i].y - 10);
+					ctx.lineTo(stuffArray[i].x - 5, stuffArray[i].y);
+					ctx.lineTo(stuffArray[i].x - 10, stuffArray[i].y - 10);
+					
+					
+					
+					ctx.closePath();
+					ctx.globalAlpha = stuffArray[i].alpha;
+					ctx.strokeStyle = 'red';
+					ctx.scale(stuffArray[i].scale, stuffArray[i].scale);
+					ctx.stroke();
+
+					ctx.restore();
+					
+					stuffArray[i].scale += 0.0005 * stuffArray[i].scale + 0.125;
+					if (stuffArray[i].scale >= 10) {
+                        stuffArray[i].alpha -= .0075;
+                    }
+					if(stuffArray[i].scale >= 25)
+					{
+                        stuffArray[i].active = false;
+                    }
+                }
+                
+				
+			}
+			ctx.restore();
         }
 		window.addEventListener("load",init);
 	}());
