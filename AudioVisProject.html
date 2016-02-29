@@ -472,11 +472,12 @@
 				var yRand = Math.random() - 0.5;
 				var xRandScalar = Math.random() * 5;
 				var yRandScalar = Math.random() * 5;
-				
+				var randRot = Math.random() * 20;
+				var randRotTick = Math.random() * 2 + 1;
 				var newXPos = xPos + xRand * xRandScalar;
 				var newYPos = yPos + yRand * yRandScalar;
 				
-				var triangle = {x: newXPos, y: newYPos, scale: 1.0, alpha: 1.0, active: true};
+				var triangle = {x: newXPos, y: newYPos, scale: 1.0, alpha: 1.0, active: true, rot: randRot, rotTick: randRotTick};
 				stuffArray[stuffArray.length] = triangle;
             }
         }
@@ -487,23 +488,46 @@
 			{
 				if (stuffArray[i].active) {
 					ctx.save();
-                    ctx.beginPath();
-				
-					ctx.moveTo(stuffArray[i].x, stuffArray[i].y - 10);
-					ctx.lineTo(stuffArray[i].x - 5, stuffArray[i].y);
-					ctx.lineTo(stuffArray[i].x - 10, stuffArray[i].y - 10);
 					
+					ctx.translate(stuffArray[i].x, stuffArray[i].y);
+					ctx.rotate(stuffArray[i].rot * Math.PI/180);
+					ctx.scale(stuffArray[i].scale, stuffArray[i].scale);
+					
+					stuffArray[i].rot += stuffArray[i].rotTick;
+					
+					ctx.strokeStyle = 'red';
+					ctx.fillStyle = 'red';
+					
+					ctx.globalAlpha = stuffArray[i].alpha;
+					
+                    ctx.beginPath();
+					
+					ctx.moveTo(0, 5);
+					ctx.lineTo(0, 0);
+					ctx.lineTo(-5, 0);
+					ctx.lineTo(0,10);
 					
 					
 					ctx.closePath();
-					ctx.globalAlpha = stuffArray[i].alpha;
-					ctx.strokeStyle = 'red';
-					ctx.scale(stuffArray[i].scale, stuffArray[i].scale);
-					ctx.stroke();
+					
+					ctx.fill();
+					
+					ctx.beginPath();
+					
+					ctx.moveTo(0, 5);
+					ctx.lineTo(0, 0);
+					ctx.lineTo(5, 0);
+					ctx.lineTo(0,10);
+					
+					
+					ctx.closePath();
+					
+					ctx.fill();
 
 					ctx.restore();
 					
 					stuffArray[i].scale += 0.0005 * stuffArray[i].scale + 0.125;
+					//stuffArray[i].scale += 0.0005 * stuffArray[i].scale + 0.0625;
 					if (stuffArray[i].scale >= 10) {
                         stuffArray[i].alpha -= .0075;
                     }
